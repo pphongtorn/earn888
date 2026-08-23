@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0d0d0f">
+<title>EARN888</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <h1>🎰 EARN888</h1>
+  <div class="user-switch" id="userSwitch"></div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button class="tab-btn active" data-tab="predict">แทงบอล</button>
+  <button class="tab-btn" data-tab="results">ผลจริง</button>
+  <button class="tab-btn" data-tab="leaderboard">อันดับ</button>
+  <button class="tab-btn" data-tab="admin">แอดมิน</button>
+</nav>
+
+<main>
+
+  <!-- PREDICT / BET TAB -->
+  <section class="tab-panel active" id="tab-predict">
+    <div class="season-badge">ฤดูกาล <span id="predictSeasonLabel">…</span></div>
+    <div class="controls">
+      <label>สัปดาห์ (Match Week)
+        <input type="number" id="predictRound" min="1" max="38" value="1">
+      </label>
+    </div>
+    <div class="controls-row">
+      <button class="btn secondary" id="detectRoundBtn">ตรวจสัปดาห์ปัจจุบัน</button>
+      <button class="btn primary" id="loadFixturesBtn">โหลดตารางแข่ง+ราคา</button>
+    </div>
+
+    <p class="status" id="predictStatus"></p>
+
+    <div class="credit-bar" id="creditBar"></div>
+
+    <div id="fixtureList" class="fixture-list"></div>
+
+    <button class="btn submit" id="submitPredictionsBtn" disabled>ส่งโพย</button>
+    <p class="hint">ผู้เล่นปัจจุบัน: <b id="currentUserLabel">เอิน</b></p>
+  </section>
+
+  <!-- RESULTS TAB -->
+  <section class="tab-panel" id="tab-results">
+    <div class="season-badge">ฤดูกาล <span id="resultsSeasonLabel">…</span></div>
+    <div class="controls">
+      <label>สัปดาห์ (Match Week)
+        <input type="number" id="resultsRound" min="1" max="38" value="1">
+      </label>
+    </div>
+    <button class="btn primary" id="fetchResultsBtn">โหลดผลการแข่งขัน</button>
+    <p class="status" id="resultsStatus"></p>
+
+    <div id="resultsList" class="fixture-list"></div>
+
+    <div class="round-score" id="roundScoreBox"></div>
+  </section>
+
+  <!-- LEADERBOARD TAB -->
+  <section class="tab-panel" id="tab-leaderboard">
+    <h2>อันดับสะสมทั้งซีซั่น (กำไร/ขาดทุน)</h2>
+    <div id="rankingList" class="ranking-list"></div>
+    <h3>รายละเอียดรายสัปดาห์</h3>
+    <table class="leaderboard-table" id="leaderboardTable">
+      <thead></thead>
+      <tbody></tbody>
+      <tfoot></tfoot>
+    </table>
+    <p class="hint" id="leaderboardEmptyHint">ยังไม่มีข้อมูล — ไปที่แท็บ "ผลจริง" เพื่อคำนวณผลแต่ละสัปดาห์</p>
+  </section>
+
+  <!-- ADMIN TAB -->
+  <section class="tab-panel" id="tab-admin">
+    <h2>จัดการเครดิต (แอดมิน)</h2>
+    <p class="hint">การเปลี่ยนแปลงต้องใส่รหัสแอดมินทุกครั้งที่บันทึก</p>
+    <div class="controls">
+      <label>สัปดาห์ที่จะแก้เครดิต
+        <input type="number" id="adminRound" min="1" max="38" value="1">
+      </label>
+    </div>
+    <p class="status" id="adminStatus"></p>
+    <div id="adminUserList" class="admin-list"></div>
+  </section>
+
+</main>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
