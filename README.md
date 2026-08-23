@@ -23,15 +23,13 @@ betting instead of win/draw/loss picks.
 
 - **Fixtures & results**: ESPN's public soccer scoreboard API (no key
   needed) — same source and match-week logic as Premier Predictor.
-- **Handicap odds**: [The Odds API](https://the-odds-api.com) — **requires a
-  free API key**. Sign up with just an email (no card), copy your key from
-  the dashboard, and paste it into the `ODDS_API_KEY` constant near the top
-  of `app.js`. Until that's set, fixtures still load fine but odds/betting
-  won't be available (the app shows a clear message instead of failing).
-  Note: bookmakers typically don't publish EPL handicap lines more than a
-  few days before kickoff, so a match week far in the future may show "no
-  odds yet" even once the key is set — that's expected, just check back
-  closer to matchday.
+- **Handicap odds**: [The Odds API](https://the-odds-api.com), keyed via
+  `ODDS_API_KEY` in `app.js` (free tier, 500 requests/month). Bookmakers
+  typically don't publish EPL handicap lines more than a few days before
+  kickoff, so a match week far in the future may show "ยังไม่มีราคาต่อรอง"
+  (no odds yet) for some or all matches — that's expected, just check back
+  closer to matchday. The odds shown come from whichever bookmaker The Odds
+  API lists first for that match (varies match to match).
 
 ## Verify codes (same as Premier Predictor)
 

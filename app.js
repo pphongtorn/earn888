@@ -22,7 +22,7 @@ const stateDocRef = doc(db, "premierPredictor", "earn888State");
 
 const ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1";
 const ODDS_API_BASE = "https://api.the-odds-api.com/v4/sports/soccer_epl/odds";
-const ODDS_API_KEY = ""; // TODO: paste the free API key from the-odds-api.com here
+const ODDS_API_KEY = "dd78ce89124f42e4600fe9704624e0d1";
 
 const DEFAULT_USERS = ["เอิน", "เสียง", "guru neung", "arm"];
 // Static per-user verify codes — a casual gate between friends, not real security.
