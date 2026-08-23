@@ -43,9 +43,12 @@ Asked once per submit — cached for the rest of that browser session.
 
 ## Admin
 
-The "แอดมิน" tab lets the admin override a user's credit for a specific
-match week (e.g. to correct a mistake or adjust standings) — gated by the
-admin code on every save.
+The "แอดมิน" tab lets the admin, gated by the admin code on every save:
+- Override a user's credit for a specific match week
+- Update a user's verify code
+- Add a new user
+- Delete a user (blocked if only one user is left; reassigns the active
+  player if you delete whoever's currently selected)
 
 ## Syncing across phones
 

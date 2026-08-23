@@ -490,7 +490,25 @@ main {
   width: 100%;
 }
 
-.admin-code-input {
+.admin-row-section {
+  padding-top: 10px;
+  margin-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+
+.admin-row-section:first-child {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: none;
+}
+
+.admin-row-section-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.admin-code-input, .admin-credit-input {
   flex: 1;
   min-width: 90px;
   padding: 8px 10px;
@@ -501,7 +519,7 @@ main {
   color: var(--text);
 }
 
-.admin-update-btn {
+.admin-update-btn, .admin-credit-btn {
   padding: 8px 10px;
   border: none;
   border-radius: 8px;
@@ -512,8 +530,35 @@ main {
   color: #1a1005;
 }
 
-.admin-update-btn:disabled {
+.admin-update-btn:disabled, .admin-credit-btn:disabled {
   opacity: 0.4;
   background: #4a4636;
   color: #8a866f;
+}
+
+.admin-delete-btn {
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  background: rgba(231,76,60,0.15);
+  color: var(--loss);
+}
+
+.admin-create-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.admin-create-row input {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: var(--dark2);
+  color: var(--text);
 }

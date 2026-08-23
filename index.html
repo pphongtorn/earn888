@@ -77,7 +77,7 @@
 
   <!-- ADMIN TAB -->
   <section class="tab-panel" id="tab-admin">
-    <h2>จัดการเครดิต (แอดมิน)</h2>
+    <h2>จัดการผู้ใช้และเครดิต (แอดมิน)</h2>
     <p class="hint">การเปลี่ยนแปลงต้องใส่รหัสแอดมินทุกครั้งที่บันทึก</p>
     <div class="controls">
       <label>สัปดาห์ที่จะแก้เครดิต
@@ -86,6 +86,13 @@
     </div>
     <p class="status" id="adminStatus"></p>
     <div id="adminUserList" class="admin-list"></div>
+
+    <h3>เพิ่มผู้ใช้ใหม่</h3>
+    <div class="admin-create-row">
+      <input type="text" id="adminNewUserName" placeholder="ชื่อผู้ใช้ใหม่">
+      <input type="text" id="adminNewUserCode" placeholder="รหัสยืนยัน">
+      <button class="btn primary" id="adminCreateBtn" disabled>สร้างผู้ใช้ใหม่</button>
+    </div>
   </section>
 
 </main>

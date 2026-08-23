@@ -749,25 +749,39 @@ function renderAdminPanel() {
   list.innerHTML = state.users.map(u => `
     <div class="admin-row" data-user="${escapeHtml(u)}">
       <div class="admin-row-name">${escapeHtml(u)}</div>
-      <div class="admin-row-controls">
-        <div class="current-credit">เครดิตปัจจุบันสัปดาห์นี้: ${getWeekCredit(round, u).toLocaleString()} ฿</div>
-        <input type="number" class="admin-code-input" placeholder="เครดิตใหม่ (฿)" min="0" step="500">
-        <button class="admin-update-btn" disabled>ตั้งค่าเครดิต</button>
+
+      <div class="admin-row-section">
+        <div class="admin-row-section-label">เครดิตปัจจุบันสัปดาห์ ${round}: ${getWeekCredit(round, u).toLocaleString()} ฿</div>
+        <div class="admin-row-controls">
+          <input type="number" class="admin-credit-input" placeholder="เครดิตใหม่ (฿)" min="0" step="500">
+          <button class="admin-credit-btn" disabled>ตั้งค่าเครดิต</button>
+        </div>
+      </div>
+
+      <div class="admin-row-section">
+        <div class="admin-row-controls">
+          <input type="text" class="admin-code-input" placeholder="รหัสใหม่">
+          <button class="admin-update-btn" disabled>อัปเดตรหัส</button>
+          <button class="admin-delete-btn">ลบผู้ใช้</button>
+        </div>
       </div>
     </div>
   `).join("");
 
   list.querySelectorAll(".admin-row").forEach(row => {
     const user = row.dataset.user;
-    const input = row.querySelector(".admin-code-input");
-    const updateBtn = row.querySelector(".admin-update-btn");
+    const creditInput = row.querySelector(".admin-credit-input");
+    const creditBtn = row.querySelector(".admin-credit-btn");
+    const codeInput = row.querySelector(".admin-code-input");
+    const codeBtn = row.querySelector(".admin-update-btn");
+    const deleteBtn = row.querySelector(".admin-delete-btn");
 
-    input.addEventListener("input", () => {
-      updateBtn.disabled = input.value.trim().length === 0;
+    creditInput.addEventListener("input", () => {
+      creditBtn.disabled = creditInput.value.trim().length === 0;
     });
 
-    updateBtn.addEventListener("click", () => {
-      const newCredit = parseInt(input.value, 10);
+    creditBtn.addEventListener("click", () => {
+      const newCredit = parseInt(creditInput.value, 10);
       if (isNaN(newCredit) || newCredit < 0) return;
       if (!ensureAdmin()) return;
       if (!state.creditOverrides[key]) state.creditOverrides[key] = {};
@@ -776,10 +790,75 @@ function renderAdminPanel() {
       renderAdminPanel();
       syncToCloud(() => { statusEl.textContent += " (⚠️ ซิงค์คลาวด์ไม่สำเร็จ)"; });
     });
+
+    codeInput.addEventListener("input", () => {
+      codeBtn.disabled = codeInput.value.trim().length === 0;
+    });
+
+    codeBtn.addEventListener("click", () => {
+      const newCode = codeInput.value.trim();
+      if (!newCode) return;
+      if (!ensureAdmin()) return;
+      state.userCodes[user] = newCode;
+      verifiedUsers.delete(user); // old cached verification no longer matches the new code
+      statusEl.textContent = `อัปเดตรหัสของ ${user} เรียบร้อย ✅`;
+      renderAdminPanel();
+      syncToCloud(() => { statusEl.textContent += " (⚠️ ซิงค์คลาวด์ไม่สำเร็จ)"; });
+    });
+
+    deleteBtn.addEventListener("click", () => {
+      if (state.users.length <= 1) {
+        statusEl.textContent = "ต้องมีผู้ใช้อย่างน้อย 1 คน";
+        return;
+      }
+      if (!ensureAdmin()) return;
+      state.users = state.users.filter(u => u !== user);
+      delete state.userCodes[user];
+      verifiedUsers.delete(user);
+      if (state.currentUser === user) {
+        state.currentUser = state.users[0];
+        resetDraftFromCommitted();
+      }
+      renderUserSwitch();
+      renderFixtureList();
+      renderAdminPanel();
+      statusEl.textContent = `ลบผู้ใช้ ${user} เรียบร้อย ✅`;
+      syncToCloud(() => { statusEl.textContent += " (⚠️ ซิงค์คลาวด์ไม่สำเร็จ)"; });
+    });
   });
 }
 
 document.getElementById("adminRound").addEventListener("input", renderAdminPanel);
+
+function updateAdminCreateBtnState() {
+  const name = document.getElementById("adminNewUserName").value.trim();
+  const code = document.getElementById("adminNewUserCode").value.trim();
+  document.getElementById("adminCreateBtn").disabled = !(name && code);
+}
+
+document.getElementById("adminNewUserName").addEventListener("input", updateAdminCreateBtnState);
+document.getElementById("adminNewUserCode").addEventListener("input", updateAdminCreateBtnState);
+
+document.getElementById("adminCreateBtn").addEventListener("click", () => {
+  const nameInput = document.getElementById("adminNewUserName");
+  const codeInput = document.getElementById("adminNewUserCode");
+  const statusEl = document.getElementById("adminStatus");
+  const name = nameInput.value.trim();
+  const code = codeInput.value.trim();
+  if (!name || !code) return;
+  if (name.toLowerCase() === "admin") { statusEl.textContent = "ชื่อ admin ถูกสงวนไว้ ใช้ชื่ออื่น"; return; }
+  if (state.users.includes(name)) { statusEl.textContent = "มีผู้ใช้ชื่อนี้อยู่แล้ว"; return; }
+  if (!ensureAdmin()) return;
+  state.users.push(name);
+  state.userCodes[name] = code;
+  nameInput.value = "";
+  codeInput.value = "";
+  updateAdminCreateBtnState();
+  renderUserSwitch();
+  renderAdminPanel();
+  statusEl.textContent = `เพิ่มผู้ใช้ ${name} เรียบร้อย ✅`;
+  syncToCloud(() => { statusEl.textContent += " (⚠️ ซิงค์คลาวด์ไม่สำเร็จ)"; });
+});
 
 // ---------- Init ----------
 renderUserSwitch();
