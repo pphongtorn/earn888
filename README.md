@@ -9,10 +9,11 @@ betting instead of win/draw/loss picks.
 
 - Every match week, each player gets a fresh **20,000 THB** credit (resets
   weekly — a bad week doesn't carry over).
-- Every match with odds available must be bet on before submitting.
-- Minimum bet per match: **1,000 THB**. You don't have to spend the full
-  20,000 — just each individual bet must clear the minimum, and the total
-  can't exceed your credit for the week.
+- Bet on as many or as few matches as you like — no requirement to cover
+  every match in the week.
+- Minimum bet per match you DO bet on: **1,000 THB**. You don't have to
+  spend the full 20,000 — the total just can't exceed your credit for the
+  week.
 - Bets settle using standard Asian handicap rules: full win, push (stake
   returned), half-win/half-loss (for quarter lines like -0.25/-0.75), or full
   loss — payout uses the decimal odds shown when you placed the bet.

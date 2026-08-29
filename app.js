@@ -277,6 +277,7 @@ async function fetchWeekMatches(round) {
 // ---------- Handicap odds fetching (The Odds API) + matching to ESPN fixtures ----------
 function normalizeTeamName(name) {
   return (name || "").toLowerCase()
+    .replace(/&/g, " and ") // ESPN uses "&" (e.g. "Brighton & Hove Albion"), Odds API spells "and" out
     .replace(/^afc\s+/, "").replace(/\s+fc$/, "")
     .replace(/[^a-z0-9]/g, "");
 }
@@ -539,15 +540,18 @@ function renderFixtureList() {
 }
 
 function updateSubmitState() {
+  // No minimum number of matches required — bet on as many or as few as you
+  // like. Whatever bets ARE entered just need to be valid (side chosen,
+  // amount >= MIN_BET) and fit within the week's credit.
   const submitBtn = document.getElementById("submitPredictionsBtn");
-  const openBettable = currentFixtures.filter(m => !isKickedOff(m) && currentOddsMap[m.idEvent]);
-  const allBet = openBettable.length > 0 && openBettable.every(m => {
-    const b = draftBets[m.idEvent];
-    return b && b.side && b.amount >= MIN_BET;
-  });
-  const totalBet = Object.values(draftBets).reduce((s, b) => s + (b.amount || 0), 0);
+  const enteredBets = currentFixtures
+    .filter(m => !isKickedOff(m))
+    .map(m => draftBets[m.idEvent])
+    .filter(Boolean);
+  const allValid = enteredBets.every(b => b.side && b.amount >= MIN_BET);
+  const totalBet = enteredBets.reduce((s, b) => s + (b.amount || 0), 0);
   const withinBudget = totalBet <= getWeekCredit(currentRound, state.currentUser);
-  submitBtn.disabled = !(allBet && withinBudget);
+  submitBtn.disabled = !(allValid && withinBudget);
 }
 
 document.getElementById("loadFixturesBtn").addEventListener("click", loadFixtures);
@@ -861,6 +865,17 @@ document.getElementById("adminCreateBtn").addEventListener("click", () => {
 });
 
 // ---------- Init ----------
+async function initDefaultRound() {
+  let round = 1;
+  try {
+    round = await detectCurrentRound(); // defaults to the current/latest match week, not always week 1
+  } catch (e) { /* keep round 1 if detection fails (e.g. offline) */ }
+  predictRoundInput.value = round;
+  resultsRoundInput.value = round;
+  document.getElementById("adminRound").value = round;
+  loadFixtures();
+}
+
 renderUserSwitch();
-loadFixtures(); // auto-load match week 1 on startup so it's ready to bet
+initDefaultRound();
 startCloudSync(); // begin listening for shared-state updates from other devices
