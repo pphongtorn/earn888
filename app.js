@@ -575,7 +575,9 @@ document.getElementById("submitPredictionsBtn").addEventListener("click", () => 
   if (!state.bets[key]) state.bets[key] = {};
   state.bets[key][state.currentUser] = JSON.parse(JSON.stringify(draftBets));
   const statusEl = document.getElementById("predictStatus");
-  statusEl.textContent = `บันทึกโพยของ ${state.currentUser} สำหรับสัปดาห์นี้แล้ว ✅`;
+  const successMsg = `บันทึกโพยของ ${state.currentUser} สำหรับสัปดาห์นี้แล้ว ✅`;
+  statusEl.textContent = successMsg;
+  window.alert(successMsg);
   syncToCloud(() => {
     statusEl.textContent += " (⚠️ ซิงค์คลาวด์ไม่สำเร็จ บันทึกไว้ในเครื่องนี้เท่านั้น)";
   });
@@ -605,13 +607,10 @@ function renderResults(round, events) {
   list.innerHTML = "";
 
   const userBets = state.bets[key] || {};
-  const balances = {};
-  state.users.forEach(u => {
-    const credit = getWeekCredit(round, u);
-    const bets = userBets[u] || {};
-    const totalStake = Object.values(bets).reduce((s, b) => s + (b.amount || 0), 0);
-    balances[u] = credit - totalStake; // provisional: assume every stake is gone; add returns back as matches settle
-  });
+  // Net +/- reflects ONLY settled (finished) bets — unbet matches and bets on
+  // matches that haven't finished yet don't count toward this figure at all.
+  const netProfit = {};
+  state.users.forEach(u => netProfit[u] = 0);
 
   let anySettled = false;
 
@@ -646,7 +645,7 @@ function renderResults(round, events) {
           amount: bet.amount, odds: bet.odds, line: bet.line, side: bet.side,
           homeGoals: parseInt(hs, 10), awayGoals: parseInt(as, 10)
         });
-        balances[user] += settled.return;
+        netProfit[user] += settled.profit;
         const sideLabel = bet.side === "H" ? match.strHomeTeam : match.strAwayTeam;
         const profitRounded = Math.round(settled.profit);
         if (profitRounded > 0) {
@@ -666,15 +665,15 @@ function renderResults(round, events) {
 
   const box = document.getElementById("roundScoreBox");
   if (!anySettled) {
-    box.innerHTML = `<div class="pending-banner">⏳ สัปดาห์นี้ยังไม่มีแมตช์ที่แข่งจบ — ยอดเครดิตจะอัปเดตอัตโนมัติหลังการแข่งขันจบแต่ละนัด</div>`;
+    box.innerHTML = `<div class="pending-banner">⏳ สัปดาห์นี้ยังไม่มีแมตช์ที่แข่งจบ — ยอดจะอัปเดตอัตโนมัติหลังการแข่งขันจบแต่ละนัด</div>`;
   } else {
-    const netProfits = {};
-    state.users.forEach(u => netProfits[u] = Math.round(balances[u] - getWeekCredit(round, u)));
-    state.weekBalances[key] = netProfits;
+    const rounded = {};
+    state.users.forEach(u => rounded[u] = Math.round(netProfit[u]));
+    state.weekBalances[key] = rounded;
     syncToCloud();
 
     box.innerHTML = state.users.map(u => {
-      const net = netProfits[u];
+      const net = rounded[u];
       const cls = net > 0 ? "positive" : net < 0 ? "negative" : "";
       return `
         <div class="score-box">
@@ -790,7 +789,9 @@ function renderAdminPanel() {
       if (!ensureAdmin()) return;
       if (!state.creditOverrides[key]) state.creditOverrides[key] = {};
       state.creditOverrides[key][user] = newCredit;
-      statusEl.textContent = `ตั้งเครดิตของ ${user} สัปดาห์ ${round} เป็น ${newCredit.toLocaleString()} บาท เรียบร้อย ✅`;
+      const successMsg = `ตั้งเครดิตของ ${user} สัปดาห์ ${round} เป็น ${newCredit.toLocaleString()} บาท เรียบร้อย ✅`;
+      statusEl.textContent = successMsg;
+      window.alert(successMsg);
       renderAdminPanel();
       syncToCloud(() => { statusEl.textContent += " (⚠️ ซิงค์คลาวด์ไม่สำเร็จ)"; });
     });
@@ -805,7 +806,9 @@ function renderAdminPanel() {
       if (!ensureAdmin()) return;
       state.userCodes[user] = newCode;
       verifiedUsers.delete(user); // old cached verification no longer matches the new code
-      statusEl.textContent = `อัปเดตรหัสของ ${user} เรียบร้อย ✅`;
+      const successMsg = `อัปเดตรหัสของ ${user} เรียบร้อย ✅`;
+      statusEl.textContent = successMsg;
+      window.alert(successMsg);
       renderAdminPanel();
       syncToCloud(() => { statusEl.textContent += " (⚠️ ซิงค์คลาวด์ไม่สำเร็จ)"; });
     });
@@ -826,7 +829,9 @@ function renderAdminPanel() {
       renderUserSwitch();
       renderFixtureList();
       renderAdminPanel();
-      statusEl.textContent = `ลบผู้ใช้ ${user} เรียบร้อย ✅`;
+      const successMsg = `ลบผู้ใช้ ${user} เรียบร้อย ✅`;
+      statusEl.textContent = successMsg;
+      window.alert(successMsg);
       syncToCloud(() => { statusEl.textContent += " (⚠️ ซิงค์คลาวด์ไม่สำเร็จ)"; });
     });
   });
@@ -860,7 +865,9 @@ document.getElementById("adminCreateBtn").addEventListener("click", () => {
   updateAdminCreateBtnState();
   renderUserSwitch();
   renderAdminPanel();
-  statusEl.textContent = `เพิ่มผู้ใช้ ${name} เรียบร้อย ✅`;
+  const successMsg = `เพิ่มผู้ใช้ ${name} เรียบร้อย ✅`;
+  statusEl.textContent = successMsg;
+  window.alert(successMsg);
   syncToCloud(() => { statusEl.textContent += " (⚠️ ซิงค์คลาวด์ไม่สำเร็จ)"; });
 });
 
