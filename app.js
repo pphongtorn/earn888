@@ -198,12 +198,6 @@ function clusterCalendarIntoWeeks(days) {
   return weeks;
 }
 
-function weekDateRange(weeks, round) {
-  const week = weeks[round - 1];
-  if (!week) return null;
-  return { start: week[0], end: week[week.length - 1] };
-}
-
 function seasonKeyFromCalendar(calendar) {
   const firstDay = calendar.calendarDays[0];
   if (!firstDay) return "unknown";
@@ -262,14 +256,25 @@ function normalizeEspnEvent(event) {
 
 async function fetchWeekMatches(round) {
   const calendar = await loadSeasonCalendar();
-  const range = weekDateRange(calendar.weeks, round);
-  if (!range) return [];
-  const startStr = range.start.replace(/-/g, "");
-  const endStr = range.end.replace(/-/g, "");
-  const res = await fetch(`${ESPN_BASE}/scoreboard?dates=${startStr}-${endStr}`);
-  if (!res.ok) throw new Error(`API error ${res.status}`);
-  const data = await res.json();
-  return (data.events || [])
+  const week = calendar.weeks[round - 1];
+  if (!week) return [];
+  // ESPN's date-RANGE query (dates=START-END) started returning 400 for every
+  // range (even ones that used to work) — fetch each day individually instead.
+  const dayResults = await Promise.all(week.map(async (day) => {
+    const dayStr = day.replace(/-/g, "");
+    const res = await fetch(`${ESPN_BASE}/scoreboard?dates=${dayStr}`);
+    if (!res.ok) throw new Error(`API error ${res.status}`);
+    const data = await res.json();
+    return data.events || [];
+  }));
+  const seen = new Set();
+  const events = [];
+  dayResults.flat().forEach(e => {
+    if (seen.has(e.id)) return;
+    seen.add(e.id);
+    events.push(e);
+  });
+  return events
     .map(normalizeEspnEvent)
     .sort((a, b) => a.isoDateTime.localeCompare(b.isoDateTime));
 }
