@@ -9,8 +9,9 @@ betting instead of win/draw/loss picks.
 
 - Every match week, each player gets a fresh **20,000 THB** credit (resets
   weekly — a bad week doesn't carry over).
-- Bet on as many or as few matches as you like — no requirement to cover
-  every match in the week.
+- Bet on at least **3 matches per week** to submit (no requirement to cover
+  every match). If a week has fewer than 3 matches you can still bet on, the
+  minimum drops to however many are available.
 - Minimum bet per match you DO bet on: **1,000 THB**. You don't have to
   spend the full 20,000 — the total just can't exceed your credit for the
   week.

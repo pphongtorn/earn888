@@ -37,6 +37,7 @@ const STORAGE_KEY = "earn888State_v1";
 const CALENDAR_CACHE_MS = 12 * 60 * 60 * 1000; // refresh the season calendar at most every 12h
 const WEEKLY_CREDIT = 20000; // default THB credit each user gets, fresh every match week
 const MIN_BET = 1000; // minimum THB stake per match
+const MIN_MATCHES = 3; // minimum number of matches a player must bet on each week
 
 function loadState() {
   let state;
@@ -448,14 +449,35 @@ async function loadFixtures() {
   }
 }
 
+// Valid bets this week, counting ones already committed on matches that have
+// since kicked off (draftBets is seeded from committed bets).
+function countValidBets() {
+  return currentFixtures.filter(m => {
+    const b = draftBets[m.idEvent];
+    return b && b.side && b.amount >= MIN_BET;
+  }).length;
+}
+
+// The 3-match minimum, capped by how many matches the player can actually
+// bet on (open with odds, or already bet) so a thin week can't lock them out.
+function requiredMatchCount() {
+  const possible = currentFixtures.filter(m =>
+    draftBets[m.idEvent] || (!isKickedOff(m) && currentOddsMap[m.idEvent])
+  ).length;
+  return Math.min(MIN_MATCHES, possible);
+}
+
 function updateCreditBar() {
   const weekCredit = getWeekCredit(currentRound, state.currentUser);
   const totalBet = Object.values(draftBets).reduce((sum, b) => sum + (b.amount || 0), 0);
   const remaining = weekCredit - totalBet;
+  const betCount = countValidBets();
+  const required = requiredMatchCount();
   const box = document.getElementById("creditBar");
   box.innerHTML = `
     <div class="credit-box"><div class="label">เครดิตสัปดาห์นี้</div><div class="value">${weekCredit.toLocaleString()} ฿</div></div>
     <div class="credit-box ${remaining < 0 ? "over" : ""}"><div class="label">คงเหลือ</div><div class="value">${remaining.toLocaleString()} ฿</div></div>
+    <div class="credit-box ${betCount < required ? "over" : ""}"><div class="label">แมตช์ที่แทง (ขั้นต่ำ ${MIN_MATCHES})</div><div class="value">${betCount}/${required}</div></div>
   `;
 }
 
@@ -545,18 +567,19 @@ function renderFixtureList() {
 }
 
 function updateSubmitState() {
-  // No minimum number of matches required — bet on as many or as few as you
-  // like. Whatever bets ARE entered just need to be valid (side chosen,
-  // amount >= MIN_BET) and fit within the week's credit.
+  // Players must bet on at least MIN_MATCHES matches per week (no need to cover
+  // every match). Every bet entered must be valid (side chosen, amount >=
+  // MIN_BET) and the total must fit within the week's credit.
   const submitBtn = document.getElementById("submitPredictionsBtn");
   const enteredBets = currentFixtures
     .filter(m => !isKickedOff(m))
     .map(m => draftBets[m.idEvent])
     .filter(Boolean);
   const allValid = enteredBets.every(b => b.side && b.amount >= MIN_BET);
-  const totalBet = enteredBets.reduce((s, b) => s + (b.amount || 0), 0);
+  const totalBet = Object.values(draftBets).reduce((s, b) => s + (b.amount || 0), 0); // incl. already-locked bets
   const withinBudget = totalBet <= getWeekCredit(currentRound, state.currentUser);
-  submitBtn.disabled = !(allValid && withinBudget);
+  const enoughMatches = countValidBets() >= requiredMatchCount();
+  submitBtn.disabled = !(allValid && withinBudget && enoughMatches);
 }
 
 document.getElementById("loadFixturesBtn").addEventListener("click", loadFixtures);
