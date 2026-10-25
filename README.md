@@ -12,14 +12,19 @@ betting instead of win/draw/loss picks.
 - Bet on at least **3 matches per week** to submit (no requirement to cover
   every match). If a week has fewer than 3 matches you can still bet on, the
   minimum drops to however many are available.
-- Minimum bet per match you DO bet on: **1,000 THB**. You don't have to
-  spend the full 20,000 — the total just can't exceed your credit for the
-  week.
+- Minimum bet per match you DO bet on: **5,000 THB** (a popup warns if you
+  enter less). You don't have to spend the full 20,000 — the total just can't
+  exceed your credit for the week.
 - Bets settle using standard Asian handicap rules: full win, push (stake
   returned), half-win/half-loss (for quarter lines like -0.25/-0.75), or full
   loss — payout uses the decimal odds shown when you placed the bet.
-- **Season ranking** = sum of each week's net profit/loss across all weeks
-  (not raw balance, since credit resets weekly).
+- **Weekly result** = the money that comes back from your *finished* bets: a
+  win pays stake + winnings, a push returns the stake, a loss returns 0. It is
+  never negative; unbet and unfinished matches count for nothing. (e.g. bet
+  10,000 and win 8,000 → 18,000; bet 10,000 and lose → 0.)
+- **Season ranking** = sum of each week's result. The dashboard lists weeks
+  newest-first, marks each week's top earner with 🏆, and shows how many weeks
+  each player has won next to their name.
 
 ## Data sources
 

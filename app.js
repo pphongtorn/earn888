@@ -36,7 +36,7 @@ const ADMIN_CODE = "Admin1234";
 const STORAGE_KEY = "earn888State_v1";
 const CALENDAR_CACHE_MS = 12 * 60 * 60 * 1000; // refresh the season calendar at most every 12h
 const WEEKLY_CREDIT = 20000; // default THB credit each user gets, fresh every match week
-const MIN_BET = 1000; // minimum THB stake per match
+const MIN_BET = 5000; // minimum THB stake per match
 const MIN_MATCHES = 3; // minimum number of matches a player must bet on each week
 
 function loadState() {
@@ -50,7 +50,7 @@ function loadState() {
     state = {
       currentUser: DEFAULT_USERS[0],
       bets: {},            // { "season_round": { user: { matchId: { side, amount, line, odds } } } }
-      weekBalances: {},    // { "season_round": { user: netProfitThb } }
+      weekBalances: {},    // { "season_round": { user: weeklyResultThb } } — winnings + capital back, never negative
       creditOverrides: {}, // { "season_round": { user: creditThb } } — admin overrides of the default 20,000
       seasonCalendar: null
     };
@@ -454,7 +454,10 @@ async function loadFixtures() {
 function countValidBets() {
   return currentFixtures.filter(m => {
     const b = draftBets[m.idEvent];
-    return b && b.side && b.amount >= MIN_BET;
+    if (!b || !b.side) return false;
+    // Bets on matches that already kicked off were placed under the rules of
+    // the time, so any stake counts; open matches must meet the current minimum.
+    return isKickedOff(m) ? b.amount > 0 : b.amount >= MIN_BET;
   }).length;
 }
 
@@ -514,7 +517,7 @@ function renderFixtureList() {
         </div>
         <div class="bet-amount-row">
           <label>เดิมพัน (฿)</label>
-          <input type="number" class="bet-amount-input" min="${MIN_BET}" step="100"
+          <input type="number" class="bet-amount-input ${bet && bet.amount > 0 && bet.amount < MIN_BET ? "invalid" : ""}" min="${MIN_BET}" step="100"
             placeholder="≥ ${MIN_BET.toLocaleString()}" value="${bet ? bet.amount || "" : ""}" ${bet ? "" : "disabled"}>
         </div>
       `;
@@ -554,8 +557,17 @@ function renderFixtureList() {
         if (isKickedOff(match)) { renderFixtureList(); return; }
         const val = parseInt(amountInput.value, 10) || 0;
         if (draftBets[match.idEvent]) draftBets[match.idEvent].amount = val;
+        amountInput.classList.toggle("invalid", val > 0 && val < MIN_BET);
         updateCreditBar();
         updateSubmitState();
+      });
+      // "change" fires when the player finishes editing (leaves the field), so
+      // the popup doesn't interrupt typing "5", "50", "500"... on the way to 5000.
+      amountInput.addEventListener("change", () => {
+        const val = parseInt(amountInput.value, 10) || 0;
+        if (val > 0 && val < MIN_BET) {
+          window.alert(`เดิมพันขั้นต่ำต่อแมตช์ ${MIN_BET.toLocaleString()} บาท (คุณใส่ ${val.toLocaleString()} บาท)`);
+        }
       });
     }
 
@@ -635,10 +647,11 @@ function renderResults(round, events) {
   list.innerHTML = "";
 
   const userBets = state.bets[key] || {};
-  // Net +/- reflects ONLY settled (finished) bets — unbet matches and bets on
-  // matches that haven't finished yet don't count toward this figure at all.
-  const netProfit = {};
-  state.users.forEach(u => netProfit[u] = 0);
+  // Weekly result = money coming back from FINISHED bets only: a win pays
+  // stake + winnings, a push returns the stake, a loss returns nothing — so it
+  // is never negative. Unbet matches and unfinished matches contribute nothing.
+  const weeklyResult = {};
+  state.users.forEach(u => weeklyResult[u] = 0);
 
   let anySettled = false;
 
@@ -673,7 +686,7 @@ function renderResults(round, events) {
           amount: bet.amount, odds: bet.odds, line: bet.line, side: bet.side,
           homeGoals: parseInt(hs, 10), awayGoals: parseInt(as, 10)
         });
-        netProfit[user] += settled.profit;
+        weeklyResult[user] += settled.return;
         const sideLabel = bet.side === "H" ? match.strHomeTeam : match.strAwayTeam;
         const profitRounded = Math.round(settled.profit);
         if (profitRounded > 0) {
@@ -696,20 +709,16 @@ function renderResults(round, events) {
     box.innerHTML = `<div class="pending-banner">⏳ สัปดาห์นี้ยังไม่มีแมตช์ที่แข่งจบ — ยอดจะอัปเดตอัตโนมัติหลังการแข่งขันจบแต่ละนัด</div>`;
   } else {
     const rounded = {};
-    state.users.forEach(u => rounded[u] = Math.round(netProfit[u]));
+    state.users.forEach(u => rounded[u] = Math.round(weeklyResult[u]));
     state.weekBalances[key] = rounded;
     syncToCloud();
 
-    box.innerHTML = state.users.map(u => {
-      const net = rounded[u];
-      const cls = net > 0 ? "positive" : net < 0 ? "negative" : "";
-      return `
-        <div class="score-box">
-          <div class="name">${escapeHtml(u)}</div>
-          <div class="pts ${cls}">${net >= 0 ? "+" : ""}${net.toLocaleString()}฿</div>
-        </div>
-      `;
-    }).join("");
+    box.innerHTML = state.users.map(u => `
+      <div class="score-box">
+        <div class="name">${escapeHtml(u)}</div>
+        <div class="pts ${rounded[u] > 0 ? "positive" : ""}">${rounded[u].toLocaleString()}฿</div>
+      </div>
+    `).join("");
   }
 }
 
@@ -726,7 +735,9 @@ function renderLeaderboard() {
   tfoot.innerHTML = "";
   rankingList.innerHTML = "";
 
-  const keys = Object.keys(state.weekBalances).sort();
+  // Newest week first. Sort by the round NUMBER, not the key string, or
+  // "…_10" would land before "…_2".
+  const keys = Object.keys(state.weekBalances).sort(compareWeekKeysNewestFirst);
   if (!keys.length) {
     emptyHint.style.display = "block";
     return;
@@ -734,40 +745,56 @@ function renderLeaderboard() {
   emptyHint.style.display = "none";
 
   const cumulative = {};
-  state.users.forEach(u => cumulative[u] = 0);
+  const weeksWon = {};
+  state.users.forEach(u => { cumulative[u] = 0; weeksWon[u] = 0; });
 
   keys.forEach(key => {
-    const net = state.weekBalances[key];
-    state.users.forEach(u => cumulative[u] += (net[u] || 0));
+    const result = state.weekBalances[key];
+    const winners = weekWinners(result);
+    state.users.forEach(u => {
+      cumulative[u] += (result[u] || 0);
+      if (winners.has(u)) weeksWon[u] += 1;
+    });
     const tr = document.createElement("tr");
     tr.innerHTML = `<td>${key.replace("_", " · สัปดาห์ ")}</td>` +
       state.users.map(u => {
-        const v = net[u] || 0;
-        return `<td>${v >= 0 ? "+" : ""}${v.toLocaleString()}฿</td>`;
+        const v = result[u] || 0;
+        return `<td>${winners.has(u) ? "🏆 " : ""}${v.toLocaleString()}฿</td>`;
       }).join("");
     tbody.appendChild(tr);
   });
 
   const tr = document.createElement("tr");
-  tr.innerHTML = `<td>รวมทั้งหมด</td>` + state.users.map(u => {
-    const v = cumulative[u];
-    return `<td>${v >= 0 ? "+" : ""}${v.toLocaleString()}฿</td>`;
-  }).join("");
+  tr.innerHTML = `<td>รวมทั้งหมด</td>` + state.users.map(u => `<td>${cumulative[u].toLocaleString()}฿</td>`).join("");
   tfoot.appendChild(tr);
 
   const ranked = state.users.slice().sort((a, b) => cumulative[b] - cumulative[a]);
   const medals = ["🥇", "🥈", "🥉"];
-  rankingList.innerHTML = ranked.map((u, i) => {
-    const net = cumulative[u];
-    const cls = net > 0 ? "positive" : net < 0 ? "negative" : "";
-    return `
-      <div class="ranking-row">
-        <div class="rank">${medals[i] || (i + 1)}</div>
-        <div class="rname">${escapeHtml(u)}</div>
-        <div class="rnet ${cls}">${net >= 0 ? "+" : ""}${net.toLocaleString()}฿</div>
-      </div>
-    `;
-  }).join("");
+  rankingList.innerHTML = ranked.map((u, i) => `
+    <div class="ranking-row">
+      <div class="rank">${medals[i] || (i + 1)}</div>
+      <div class="rname">${escapeHtml(u)}${weeksWon[u] ? `<span class="wins" title="สัปดาห์ที่ได้มากที่สุด">🏆${weeksWon[u]}</span>` : ""}</div>
+      <div class="rnet ${cumulative[u] > 0 ? "positive" : ""}">${cumulative[u].toLocaleString()}฿</div>
+    </div>
+  `).join("");
+}
+
+function compareWeekKeysNewestFirst(a, b) {
+  const split = k => {
+    const i = k.lastIndexOf("_");
+    return { season: k.slice(0, i), round: parseInt(k.slice(i + 1), 10) || 0 };
+  };
+  const pa = split(a), pb = split(b);
+  if (pa.season !== pb.season) return pb.season.localeCompare(pa.season);
+  return pb.round - pa.round;
+}
+
+// The week's winner(s): whoever got the most back, provided it's above 0
+// (a week where nobody won anything has no winner; ties share the trophy).
+function weekWinners(result) {
+  const best = Math.max(0, ...state.users.map(u => result[u] || 0));
+  if (best <= 0) return new Set();
+  return new Set(state.users.filter(u => (result[u] || 0) === best));
 }
 
 // ---------- Admin tab ----------
